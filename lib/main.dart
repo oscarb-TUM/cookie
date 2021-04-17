@@ -58,9 +58,8 @@ class _MyHomePageState extends State<MyHomePage> {
   String prompt = "";
 
   void sentToAI(String s) async {
-    //userInput = s.split(', ');
 
-    prompt = "Name delicious meals I can cook containing " + s + ":" + "\n" + "1.";
+    prompt = "Name five delicious meals I can cook containing " + s + ":" + "\n" + "1.";
 
     var result = await http.post(
       Uri.parse("https://api.openai.com/v1/engines/davinci/completions"),
@@ -73,9 +72,9 @@ class _MyHomePageState extends State<MyHomePage> {
       body: jsonEncode({
         "prompt": prompt,
         "max_tokens": 120,
-        "temperature": 0.7,
+        "temperature": 0.9,
         "top_p": 1,
-        "stop": "5\\.[:blank:](\w+([:blank:]w+)*)",
+        "stop": "Name",
       }),
     );
 
@@ -167,6 +166,9 @@ class _GeneratorState extends State<Generator> {
   Widget _buildRow(String string) {
     return ListTile(
       leading: Icon(Icons.kitchen),
+      onTap: () => Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => RecipeDescription(name: string))),
       title: Text(
         string,
         style: _biggerFont,
@@ -186,4 +188,87 @@ class _GeneratorState extends State<Generator> {
   }
 }
 
+class RecipeDescription extends StatefulWidget {
+  String name;
+  RecipeDescription({this.name});
+
+  @override
+  _RecipeDescriptionState createState() => _RecipeDescriptionState(name: name);
+}
+
+class _RecipeDescriptionState extends State<RecipeDescription> {
+  String name;
+  _RecipeDescriptionState({this.name});
+
+  Future<List<String>> generateRecipe(String name) async {
+
+    String prompt = "";
+
+    var result = await http.post(
+      Uri.parse("https://api.openai.com/v1/engines/davinci/completions"),
+
+      headers: {
+        "Authorization": "Bearer $OPENAI_KEY",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "prompt": prompt,
+        "max_tokens": 120,
+        "temperature": 0.9,
+        "top_p": 1,
+        "stop": "Name",
+      }),
+    );
+
+    var body = jsonDecode(result.body);
+    var text = body["choices"][0]["text"];
+
+    String string = text.toString();
+    List<String> list = string.split("\n");
+
+    return list;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    //List<String> list = generateRecipe(this.name) as List<String>;
+
+    return Scaffold(
+        appBar: AppBar(
+          title: Text('Chef de PartAI - Cookie'),
+        ),
+        body: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            DefaultTextStyle(
+              style: TextStyle(fontSize: 36, color: Colors.black),
+              child: Center(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Apple Pi',
+                        style: TextStyle(fontSize: 48, color: Colors.black),
+                    ),
+                    const Text(
+                      'Ingredients:',
+                      style: TextStyle(fontSize: 35, color: Colors.green),
+                    ),
+                    const Text(
+                      'Instructions',
+                      style: TextStyle(fontSize: 35, color: Colors.red),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const Text(
+              'The fourth text',
+            ),
+          ],
+        )
+    );
+  }
+}
 
