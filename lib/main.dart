@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
         // is not restarted.
         primarySwatch: Colors.green,
       ),
-      home: MyHomePage(title: 'Chef de PartAI'),
+      home: MyHomePage(title: 'Chef de PartAI - Cookie'),
     );
   }
 }
@@ -60,7 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void sentToAI(String s) async {
     //userInput = s.split(', ');
 
-    prompt = "Give me a list of recipes containing " + s + "\n" + "1.";
+    prompt = "Name delicious meals I can cook containing " + s + ":" + "\n" + "1.";
 
     var result = await http.post(
       Uri.parse("https://api.openai.com/v1/engines/davinci/completions"),
@@ -73,22 +73,25 @@ class _MyHomePageState extends State<MyHomePage> {
       body: jsonEncode({
         "prompt": prompt,
         "max_tokens": 120,
-        "temperature": 0,
+        "temperature": 0.7,
         "top_p": 1,
-        "stop": "\n",
+        "stop": "5\\.[:blank:](\w+([:blank:]w+)*)",
       }),
     );
-    print("Testing -----------------------------------------------");
-    print(result.body);
 
     var body = jsonDecode(result.body);
     var text = body["choices"][0]["text"];
-    print(text);
 
+    String string = text.toString();
+    List<String> list = string.split("\n");
+    // list.forEach((element) {print(element);});
+    // list.forEach((element) {element.replaceFirst("\d\\.\s", "");});
+
+    list.removeWhere((element) => element.isEmpty);
 
     Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => Generator()));
+        MaterialPageRoute(builder: (context) => Generator(suggestions: list)));
   }
 
   @override
@@ -126,65 +129,57 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => Generator()));
-        },
-        tooltip: 'Increment',
-        child: Icon(Icons.done),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
 
 class Generator extends StatefulWidget {
+
+  List<String> suggestions;
+  Generator({this.suggestions});
+
   @override
-  _GeneratorState createState() => _GeneratorState();
+  _GeneratorState createState() => _GeneratorState(list: this.suggestions);
 }
 
 class _GeneratorState extends State<Generator> {
-
+  final List<String> list;
   //final _suggestions = <WordPair>[];                 // NEW
-  final _biggerFont = const TextStyle(fontSize: 18); // NEW
+  final _biggerFont = const TextStyle(fontSize: 18);
+
+  _GeneratorState({this.list}); // NEW
 
   Widget buildList() {
     return ListView.builder(
         padding: const EdgeInsets.all(16),
 
         itemBuilder: (BuildContext _context, int i) {
-          // Add a one-pixel-high divider widget before each row
-          // in the ListView.
-          if (i.isOdd) {
-            return Divider();
-          }
 
-          // The syntax "i ~/ 2" divides i by 2 and returns an
-          // integer result.
-          // For example: 1, 2, 3, 4, 5 becomes 0, 1, 1, 2, 2.
-          // This calculates the actual number of word pairings
-          // in the ListView,minus the divider widgets.
-          final int index = i ~/ 2;
-          // If you've reached the end of the available word
-          // pairings...
-          if (index >= _suggestions.length) {
-            // ...then generate 10 more and add them to the
-            // suggestions list.
-            _suggestions.addAll(generateWordPairs().take(10));
+          if (i < list.length) {
+            return _buildRow(list[i]);
+          } else {
+            return null;
           }
-          return _buildRow(_suggestions[index]);
         }
     );
   }
 
+  Widget _buildRow(String string) {
+    return ListTile(
+      leading: Icon(Icons.kitchen),
+      title: Text(
+        string,
+        style: _biggerFont,
+      ),
+    );
+  }
 
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Chef d PartAI"),
+        title: Text("Chef de PartAI from Cookie"),
       ),
       body: buildList(),
     );
