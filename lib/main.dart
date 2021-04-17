@@ -256,7 +256,7 @@ class _RecipeDescriptionState extends State<RecipeDescription> {
                       style: TextStyle(fontSize: 35, color: Colors.green),
                     ),
                     const Text(
-                      'Instructions',
+                      'Instructions:',
                       style: TextStyle(fontSize: 35, color: Colors.red),
                     ),
                   ],
