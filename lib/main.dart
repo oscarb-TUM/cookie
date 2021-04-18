@@ -59,7 +59,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void sentToAI(String s) async {
 
-    prompt = "Name five delicious meals I can cook containing " + s + ":" + "\n" + "1.";
+    List<String> userInput = s.split(": ");
+
+    prompt = "Give me five " + userInput[0] + " delicious meals which include "
+                + userInput[1] + ":" + "\n";
 
     var result = await http.post(
       Uri.parse("https://api.openai.com/v1/engines/davinci/completions"),
@@ -71,10 +74,11 @@ class _MyHomePageState extends State<MyHomePage> {
       },
       body: jsonEncode({
         "prompt": prompt,
-        "max_tokens": 120,
-        "temperature": 0.9,
+        "max_tokens": 64,
+        "temperature": 0.1,
         "top_p": 1,
-        "stop": "Name",
+        "frequency_penalty": 0.8,
+        "stop": "Give",
       }),
     );
 
@@ -83,10 +87,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
     String string = text.toString();
     List<String> list = string.split("\n");
-    // list.forEach((element) {print(element);});
-    // list.forEach((element) {element.replaceFirst("\d\\.\s", "");});
+
 
     list.removeWhere((element) => element.isEmpty);
+
+    for (int i = 0; i < list.length; i++) {
+      list[i] = list[i].substring(3);
+    }
+    // RegExp exp = RegExp(r'\d\.\s');
+    //list.forEach((element) {element = element.substring(3);});
 
     Navigator.push(
         context,
@@ -107,27 +116,42 @@ class _MyHomePageState extends State<MyHomePage> {
         // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
       ),
-      body: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24.0),
-        child: Center(
-          child: TextFormField(
-            onFieldSubmitted: (String s) {
-              sentToAI(s);
-            },
-            decoration: InputDecoration(
-              //filled: true,
-              //fillColor: Colors.lightGreenAccent,
-              helperText: 'Enter Ingredients (Eggs, Cheese, ...)',
-              border: OutlineInputBorder(
-                borderSide: BorderSide(
-                  color: Colors.green,
+      body: Stack(
+        children: <Widget> [
+
+          Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage("assets/background.jpg"),
+                fit: BoxFit.cover,
+              )
+            ),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.0),
+              child: Center(
+                child: TextFormField(
+                  style: TextStyle(color: Colors.white),
+                  onFieldSubmitted: (String s) {
+                    sentToAI(s);
+                  },
+                  decoration: InputDecoration(
+                    filled: true,
+                    fillColor: Colors.grey,
+                    helperText: 'Enter gengre: ingredients (french: eggs, cheese)',
+                    helperStyle: TextStyle(color: Colors.white),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(
+                        color: Colors.white,
+                      ),
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(10.0),
               ),
             ),
           ),
+        ]
         ),
-      ),
     );
   }
 }
@@ -163,12 +187,73 @@ class _GeneratorState extends State<Generator> {
     );
   }
 
+  void generateFullRecipe(String recipeName) async {
+
+    // accessAI here
+
+    // generate ingredients
+    String promptIngredients = "List ingredients witch exact measurements to make a" + recipeName + ":\n";
+
+    var result = await http.post(
+      Uri.parse("https://api.openai.com/v1/engines/davinci/completions"),
+
+      headers: {
+        "Authorization": "Bearer $OPENAI_KEY",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "prompt": promptIngredients,
+        "max_tokens": 120,
+        "temperature": 0.1,
+        "top_p": 1,
+        "stop": "Show",
+      }),
+    );
+
+    var body = jsonDecode(result.body);
+    var text = body["choices"][0]["text"];
+
+    String ingredients = "Ingredients:\n" + text.toString() + "\n";
+
+    // generate instructions
+    String promptInstructions = "Instruct me on how to cook " + recipeName + " step by step: \n";
+
+    var resultInstr = await http.post(
+      Uri.parse("https://api.openai.com/v1/engines/davinci/completions"),
+
+      headers: {
+        "Authorization": "Bearer $OPENAI_KEY",
+        "Accept": "application/json",
+        "Content-Type": "application/json",
+      },
+      body: jsonEncode({
+        "prompt": promptInstructions,
+        "max_tokens": 120,
+        "temperature": 0.25,
+        "top_p": 1,
+        "stop": "Instruct",
+      }),
+    );
+
+    var bodyInstr = jsonDecode(resultInstr.body);
+    var textInstr = bodyInstr["choices"][0]["text"];
+    String instructions = "Instructions:\n" + textInstr.toString();
+
+    // resulting description
+    List<String> list = [recipeName, ingredients, instructions];
+
+    Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => RecipeDescription(recipe: list)));
+  }
+
+
   Widget _buildRow(String string) {
+
     return ListTile(
       leading: Icon(Icons.kitchen),
-      onTap: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => RecipeDescription(name: string))),
+      onTap: () => generateFullRecipe(string),
       title: Text(
         string,
         style: _biggerFont,
@@ -189,57 +274,26 @@ class _GeneratorState extends State<Generator> {
 }
 
 class RecipeDescription extends StatefulWidget {
-  String name;
-  RecipeDescription({this.name});
+  List<String> recipe;
+  RecipeDescription({this.recipe});
 
   @override
-  _RecipeDescriptionState createState() => _RecipeDescriptionState(name: name);
+  _RecipeDescriptionState createState() => _RecipeDescriptionState(recipe: recipe);
 }
 
 class _RecipeDescriptionState extends State<RecipeDescription> {
-  String name;
-  _RecipeDescriptionState({this.name});
-
-  List<String> generateRecipe(String name)  {
-
-    String prompt = "";
-
-    // var result = await http.post(
-    //   Uri.parse("https://api.openai.com/v1/engines/davinci/completions"),
-    //
-    //   headers: {
-    //     "Authorization": "Bearer $OPENAI_KEY",
-    //     "Accept": "application/json",
-    //     "Content-Type": "application/json",
-    //   },
-    //   body: jsonEncode({
-    //     "prompt": prompt,
-    //     "max_tokens": 120,
-    //     "temperature": 0.9,
-    //     "top_p": 1,
-    //     "stop": "Name",
-    //   }),
-    // );
-    //
-    // var body = jsonDecode(result.body);
-    // var text = body["choices"][0]["text"];
-    //
-    // String string = text.toString();
-    // List<String> list = string.split("\n");
-
-    List<String> list = ["Apple Pi", "Ingredients:","Instructions:"];
-    return list;
-  }
+  List<String> recipe;
+  _RecipeDescriptionState({this.recipe});
 
   @override
   Widget build(BuildContext context) {
-    List<String> list = generateRecipe(this.name);
 
     return Scaffold(
+        resizeToAvoidBottomInset: false,
         appBar: AppBar(
           title: Text('Chef de PartAI - Cookie'),
         ),
-        body: Container(
+        body: SingleChildScrollView(child: Container(
           padding: EdgeInsets.symmetric(horizontal: 24.0),
           decoration: BoxDecoration(
             border: Border.all(color: Colors.black),
@@ -250,34 +304,34 @@ class _RecipeDescriptionState extends State<RecipeDescription> {
 
             children: [
               DefaultTextStyle(
+                //overflow: TextOverflow.fade,
                 style: TextStyle(fontSize: 36, color: Colors.black),
                 child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     textDirection: TextDirection.ltr,
                     children: [
                       Text(
-                        list[0],
+                        recipe[0],
                           textAlign: TextAlign.left,
 
                           style: TextStyle(fontSize: 48, color: Colors.black),
                       ),
                       Text(
-                        list[1],
+                        recipe[1],
+                        textAlign: TextAlign.left,
                         style: TextStyle(fontSize: 35, color: Colors.green),
                       ),
                       Text(
-                        list[2],
+                        recipe[2],
+                        textAlign: TextAlign.left,
                         style: TextStyle(fontSize: 35, color: Colors.red),
                       ),
                     ],
                   ),
                 ),
-              const Text(
-                'The fourth text',
-              ),
             ],
           )
-      )
+      ),),
     );
   }
 }
