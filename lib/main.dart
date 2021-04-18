@@ -118,7 +118,7 @@ class _MyHomePageState extends State<MyHomePage> {
               //filled: true,
               //fillColor: Colors.lightGreenAccent,
               helperText: 'Enter Ingredients (Eggs, Cheese, ...)',
-              disabledBorder: OutlineInputBorder(
+              border: OutlineInputBorder(
                 borderSide: BorderSide(
                   color: Colors.green,
                 ),
@@ -200,74 +200,84 @@ class _RecipeDescriptionState extends State<RecipeDescription> {
   String name;
   _RecipeDescriptionState({this.name});
 
-  Future<List<String>> generateRecipe(String name) async {
+  List<String> generateRecipe(String name)  {
 
     String prompt = "";
 
-    var result = await http.post(
-      Uri.parse("https://api.openai.com/v1/engines/davinci/completions"),
+    // var result = await http.post(
+    //   Uri.parse("https://api.openai.com/v1/engines/davinci/completions"),
+    //
+    //   headers: {
+    //     "Authorization": "Bearer $OPENAI_KEY",
+    //     "Accept": "application/json",
+    //     "Content-Type": "application/json",
+    //   },
+    //   body: jsonEncode({
+    //     "prompt": prompt,
+    //     "max_tokens": 120,
+    //     "temperature": 0.9,
+    //     "top_p": 1,
+    //     "stop": "Name",
+    //   }),
+    // );
+    //
+    // var body = jsonDecode(result.body);
+    // var text = body["choices"][0]["text"];
+    //
+    // String string = text.toString();
+    // List<String> list = string.split("\n");
 
-      headers: {
-        "Authorization": "Bearer $OPENAI_KEY",
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-      },
-      body: jsonEncode({
-        "prompt": prompt,
-        "max_tokens": 120,
-        "temperature": 0.9,
-        "top_p": 1,
-        "stop": "Name",
-      }),
-    );
-
-    var body = jsonDecode(result.body);
-    var text = body["choices"][0]["text"];
-
-    String string = text.toString();
-    List<String> list = string.split("\n");
-
+    List<String> list = ["Apple Pi", "Ingredients:","Instructions:"];
     return list;
   }
 
   @override
   Widget build(BuildContext context) {
-    //List<String> list = generateRecipe(this.name) as List<String>;
+    List<String> list = generateRecipe(this.name);
 
     return Scaffold(
         appBar: AppBar(
           title: Text('Chef de PartAI - Cookie'),
         ),
-        body: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            DefaultTextStyle(
-              style: TextStyle(fontSize: 36, color: Colors.black),
-              child: Center(
+        body: Container(
+          padding: EdgeInsets.symmetric(horizontal: 24.0),
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.black),
+            borderRadius: BorderRadius.circular(10.0),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+
+            children: [
+              DefaultTextStyle(
+                style: TextStyle(fontSize: 36, color: Colors.black),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Apple Pi',
-                        style: TextStyle(fontSize: 48, color: Colors.black),
-                    ),
-                    const Text(
-                      'Ingredients:',
-                      style: TextStyle(fontSize: 35, color: Colors.green),
-                    ),
-                    const Text(
-                      'Instructions:',
-                      style: TextStyle(fontSize: 35, color: Colors.red),
-                    ),
-                  ],
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    textDirection: TextDirection.ltr,
+                    children: [
+                      Text(
+                        list[0],
+                          textAlign: TextAlign.left,
+
+                          style: TextStyle(fontSize: 48, color: Colors.black),
+                      ),
+                      Text(
+                        list[1],
+                        style: TextStyle(fontSize: 35, color: Colors.green),
+                      ),
+                      Text(
+                        list[2],
+                        style: TextStyle(fontSize: 35, color: Colors.red),
+                      ),
+                    ],
+                  ),
                 ),
+              const Text(
+                'The fourth text',
               ),
-            ),
-            const Text(
-              'The fourth text',
-            ),
-          ],
-        )
+            ],
+          )
+      )
     );
   }
 }
